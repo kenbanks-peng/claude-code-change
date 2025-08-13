@@ -80,7 +80,7 @@
   },
   "author": "enjin",
   "license": "ISC",
-  "publisher": "claude-code-change",
+  "publisher": "enjin",
   "repository": {
     "type": "git",
     "url": "https://github.com/enzheng128/claude-code-change.git"
