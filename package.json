@@ -2,7 +2,7 @@
   "name": "claude-code-change",
   "displayName": "Claude Code Change",
   "description": "A VSCode extension that provides file comparison and change tracking functionality for Claude Code conversations",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.74.0"
@@ -21,7 +21,9 @@
     "color": "#1e1e1e",
     "theme": "dark"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/src/extension.js",
   "contributes": {
     "views": {

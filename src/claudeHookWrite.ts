@@ -43,8 +43,28 @@ export function createHookWrite() {
   if (!currentConfig['hooks']['Stop']) {
     currentConfig['hooks']['Stop'] = [];
   }
-  currentConfig['hooks']['PreToolUse'].push(preHookConfig);
-  currentConfig['hooks']['Stop'].push(stopHookConfig);
-  fs.writeFileSync(claudeConfigPath, JSON.stringify(currentConfig, null, 2));
-  vscode.window.showInformationMessage('Claude Hook Write Success');
+  // 检查是否已存在相同的PreToolUse hook
+  const preHookExists = currentConfig['hooks']['PreToolUse'].some((item: any) => {
+    return (item.hooks || []).some((hook: any) => hook.command === ('node ' + preHookJsPath));
+  });
+
+  // 检查是否已存在相同的Stop hook
+  const stopHookExists = currentConfig['hooks']['Stop'].some((item: any) => {
+    return (item.hooks || []).some((hook: any) => hook.command === ('node ' + stopHookJsPath));
+  });
+
+  // 只有不存在时才添加PreToolUse hook
+  if (!preHookExists) {
+    currentConfig['hooks']['PreToolUse'].push(preHookConfig);
+  }
+
+  // 只有不存在时才添加Stop hook
+  if (!stopHookExists) {
+    currentConfig['hooks']['Stop'].push(stopHookConfig);
+  }
+
+  // 只有需要更新时才写入文件
+  if (!preHookExists || !stopHookExists) {
+    fs.writeFileSync(claudeConfigPath, JSON.stringify(currentConfig, null, 2));
+  }
 }

@@ -16,6 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
         fs.mkdirSync(codeChangeDir);
     }
 
+    // 启动时自动安装hooks（静默模式）
+    createHookWrite();
+
     // 获取当前工作区路径并计算MD5
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     let changeDir = codeChangeDir;
