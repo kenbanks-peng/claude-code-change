@@ -10,6 +10,17 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "claude",
+    "code",
+    "diff",
+    "comparison",
+    "file tracking"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "main": "./out/src/extension.js",
   "contributes": {
@@ -67,15 +78,15 @@
     "@types/node": "16.x",
     "typescript": "^4.9.4"
   },
-  "author": "",
+  "author": "enjin",
   "license": "ISC",
   "publisher": "claude-code-change",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/claude-code-change.git"
+    "url": "https://github.com/enzheng128/claude-code-change.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/claude-code-change/issues"
+    "url": "https://github.com/enzheng128/claude-code-change/issues"
   },
-  "homepage": "https://github.com/your-username/claude-code-change#readme"
+  "homepage": "https://github.com/enzheng128/claude-code-change#readme"
 }
