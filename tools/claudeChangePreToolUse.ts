@@ -76,7 +76,9 @@ const cacheChangeFile = async (data: InputData) => {
     fs.copyFileSync(file_path, targetFilePath);
     console.log(`文件已复制到: ${targetFilePath}`);
   } else {
-    console.log(`源文件不存在: ${file_path}`);
+    // 如果文件不存在，则创建一个空文件
+    fs.writeFileSync(targetFilePath, '');
+    console.log(`源文件不存在: ${file_path}, 已创建空文件: ${targetFilePath}`);
   }
 };
 
