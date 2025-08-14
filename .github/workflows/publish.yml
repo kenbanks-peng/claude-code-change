@@ -1,6 +1,8 @@
+# .github/workflows/publish.yml
 name: Publish VSCode Extension
 
 on:
+  # 保留原来的触发器，用于手动发布或直接推送标签
   push:
     tags:
       - 'v*'
@@ -11,10 +13,13 @@ on:
         required: true
         type: string
 
+  # 新增的自定义事件触发器
+  repository_dispatch:
+    types: [trigger-publish]
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: push
     permissions:
       contents: write
       packages: write
@@ -22,6 +27,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        # 当被 repository_dispatch 触发时，我们需要权限来推送 commit 和 tag
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,7 +48,31 @@ jobs:
           npm install -g @vscode/vsce
           npm install -g ovsx
 
-      - name: Update version from input
+      # 核心改动：如果是由自定义事件触发，则执行版本更新、提交和打标签
+      - name: Bump version, commit and tag
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          # 从事件 payload 中获取版本号
+          VERSION=${{ github.event.client_payload.version }}
+          echo "Bumping version to $VERSION from dispatch event"
+
+          # 配置 Git 用户
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # 更新版本号，提交，并推送到 main
+          npm version $VERSION --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to $VERSION"
+          git push origin main
+
+          # 创建并推送标签
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+          echo "Created and pushed tag v$VERSION"
+
+      # 如果是手动触发，则使用手动输入的版本号
+      - name: Update version from manual input
         if: github.event_name == 'workflow_dispatch'
         run: |
           npm version ${{ github.event.inputs.version }} --no-git-tag-version
@@ -51,17 +83,16 @@ jobs:
       - name: Publish to VSCode Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          vsce publish --packagePath dist/*.vsix
+        run: vsce publish --packagePath dist/*.vsix
 
       - name: Publish to Open VSX Registry
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: |
-          ovsx publish dist/*.vsix -p $OVSX_PAT
+        run: ovsx publish dist/*.vsix -p $OVSX_PAT
 
+      # 创建 Release 的逻辑保持不变，它会自动使用刚刚推送的标签
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'repository_dispatch'
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.vsix

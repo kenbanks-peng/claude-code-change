@@ -1,13 +1,15 @@
-name: Version Check and Auto Increment
+# .github/workflows/version-check.yml
+name: Version Check and Trigger Publish
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
+# 权限变更：不再需要写仓库，只需要触发其他 action
 permissions:
-  contents: write
-  packages: write
+  contents: read
+  actions: write
 
 jobs:
   check-version:
@@ -15,7 +17,7 @@ jobs:
     outputs:
       needs-version-bump: ${{ steps.version-check.outputs.needs-bump }}
       new-version: ${{ steps.version-check.outputs.new-version }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,25 +46,21 @@ jobs:
 
       - name: Check if version bump is needed
         id: version-check
+        # ... 此处逻辑与您原来的一样，保持不变 ...
         run: |
           CURRENT="${{ steps.current-version.outputs.current-version }}"
           LATEST_TAG="${{ steps.latest-tag.outputs.latest-tag }}"
-          
+
           echo "Comparing versions: Current=$CURRENT, Latest Tag=$LATEST_TAG"
-          
+
           if [ "$CURRENT" = "$LATEST_TAG" ]; then
             echo "Version $CURRENT is same as latest tag, incrementing patch version..."
-            
-            # 解析版本号
             IFS='.' read -r -a version_parts <<< "$CURRENT"
             major=${version_parts[0]}
             minor=${version_parts[1]}
             patch=${version_parts[2]}
-            
-            # 增加补丁版本号
             new_patch=$((patch + 1))
             NEW_VERSION="$major.$minor.$new_patch"
-            
             echo "needs-bump=true" >> $GITHUB_OUTPUT
             echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
             echo "New version will be: $NEW_VERSION"
@@ -72,44 +70,15 @@ jobs:
             echo "new-version=$CURRENT" >> $GITHUB_OUTPUT
           fi
 
-  update-version:
+  # 这个 job 完全被替换了
+  trigger-publish-event:
     needs: check-version
     if: needs.check-version.outputs.needs-version-bump == 'true'
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Trigger Publish Workflow
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Configure Git
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-      - name: Update package.json version
-        run: |
-          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
-          echo "Updating version to $NEW_VERSION"
-          npm version $NEW_VERSION --no-git-tag-version
-
-      - name: Commit version update
-        run: |
-          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
-          git add package.json
-          git commit -m "chore: bump version to $NEW_VERSION"
-          git push origin main
-
-      - name: Create and push tag
-        run: |
-          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
-          echo "Created and pushed tag v$NEW_VERSION"
+          event-type: trigger-publish # 定义我们的事件名
+          client-payload: '{"version": "${{ needs.check-version.outputs.new-version }}"}'
