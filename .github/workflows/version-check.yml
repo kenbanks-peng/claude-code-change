@@ -1,0 +1,115 @@
+name: Version Check and Auto Increment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      needs-version-bump: ${{ steps.version-check.outputs.needs-bump }}
+      new-version: ${{ steps.version-check.outputs.new-version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Get current version from package.json
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Get latest tag version
+        id: latest-tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "latest-tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag version: $LATEST_TAG"
+
+      - name: Check if version bump is needed
+        id: version-check
+        run: |
+          CURRENT="${{ steps.current-version.outputs.current-version }}"
+          LATEST_TAG="${{ steps.latest-tag.outputs.latest-tag }}"
+          
+          echo "Comparing versions: Current=$CURRENT, Latest Tag=$LATEST_TAG"
+          
+          if [ "$CURRENT" = "$LATEST_TAG" ]; then
+            echo "Version $CURRENT is same as latest tag, incrementing patch version..."
+            
+            # 解析版本号
+            IFS='.' read -r -a version_parts <<< "$CURRENT"
+            major=${version_parts[0]}
+            minor=${version_parts[1]}
+            patch=${version_parts[2]}
+            
+            # 增加补丁版本号
+            new_patch=$((patch + 1))
+            NEW_VERSION="$major.$minor.$new_patch"
+            
+            echo "needs-bump=true" >> $GITHUB_OUTPUT
+            echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "New version will be: $NEW_VERSION"
+          else
+            echo "Version $CURRENT is different from latest tag $LATEST_TAG, no bump needed"
+            echo "needs-bump=false" >> $GITHUB_OUTPUT
+            echo "new-version=$CURRENT" >> $GITHUB_OUTPUT
+          fi
+
+  update-version:
+    needs: check-version
+    if: needs.check-version.outputs.needs-version-bump == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Update package.json version
+        run: |
+          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
+          echo "Updating version to $NEW_VERSION"
+          npm version $NEW_VERSION --no-git-tag-version
+
+      - name: Commit version update
+        run: |
+          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git push origin main
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ needs.check-version.outputs.new-version }}"
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+          echo "Created and pushed tag v$NEW_VERSION"
