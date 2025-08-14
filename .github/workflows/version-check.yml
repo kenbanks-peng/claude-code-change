@@ -6,10 +6,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# 权限变更：不再需要写仓库，只需要触发其他 action
+# 权限配置：需要触发其他工作流的权限
 permissions:
-  contents: read
-  actions: write
+  contents: write
+  packages: write
 
 jobs:
   check-version:
@@ -80,5 +80,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: trigger-publish # 定义我们的事件名
+          event-type: trigger-publish
           client-payload: '{"version": "${{ needs.check-version.outputs.new-version }}"}'
