@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { FileTypeTreeProvider } from './fileTypeTreeProvider';
 import { FileTypeTreeItem } from './types';
 import { createHookWrite } from './claudeHookWrite';
+import { copyHookFile } from './copyHookFile';
 
 export function activate(context: vscode.ExtensionContext) {
     // 检查并创建 .claudeCodeChange 目录
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // 启动时自动安装hooks（静默模式）
+    copyHookFile(context.extensionPath);
     createHookWrite();
 
     // 获取当前工作区路径并计算MD5
@@ -75,32 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // 获取插件安装目录
                 const extensionPath = context.extensionPath;
-                const toolsSrcDir = path.join(extensionPath, 'out', 'tools');
-
-                // 复制编译后的文件到 .claudeCodeChange/tools
-                const homeDir = require('os').homedir();
-                const toolsDestDir = path.join(homeDir, '.claudeCodeChange', 'tools');
-
-                if (!fs.existsSync(toolsDestDir)) {
-                    fs.mkdirSync(toolsDestDir, { recursive: true });
-                }
-
-                // 复制所有编译后的工具文件
-                if (fs.existsSync(toolsSrcDir)) {
-                    const files = fs.readdirSync(toolsSrcDir);
-                    for (const file of files) {
-                        if (file.endsWith('.js')) {
-                            const srcFile = path.join(toolsSrcDir, file);
-                            const destFile = path.join(toolsDestDir, file);
-                            fs.copyFileSync(srcFile, destFile);
-                        }
-                    }
-                } else {
-                    throw new Error(`Tools directory not found: ${toolsSrcDir}`);
-                }
-
-                progress.report({ increment: 50, message: "Running installation script..." });
-
+                copyHookFile(extensionPath);
                 createHookWrite();
 
                 return Promise.resolve();
