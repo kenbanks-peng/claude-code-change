@@ -7,6 +7,27 @@ import { FileTypeTreeProvider } from './fileTypeTreeProvider';
 import { FileTypeTreeItem } from './types';
 import { createHookWrite } from './claudeHookWrite';
 import { copyHookFile } from './copyHookFile';
+import { GitUtils } from './gitUtils';
+
+function clearCacheDirectory(cacheDir: string): void {
+    try {
+        if (fs.existsSync(cacheDir)) {
+            // Remove all files but keep the directory structure
+            const files = fs.readdirSync(cacheDir);
+            for (const file of files) {
+                const filePath = path.join(cacheDir, file);
+                const stat = fs.statSync(filePath);
+                if (stat.isFile()) {
+                    fs.unlinkSync(filePath);
+                } else if (stat.isDirectory()) {
+                    fs.rmSync(filePath, { recursive: true });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to clear cache directory:', error);
+    }
+}
 
 export function activate(context: vscode.ExtensionContext) {
     // Check and create .claudeCodeChange directory
@@ -41,6 +62,34 @@ export function activate(context: vscode.ExtensionContext) {
     const treeView = vscode.window.createTreeView('fileTypeExplorer', {
         treeDataProvider: provider
     });
+
+    // Git monitoring for cache clearing
+    let lastCommitHash: string | null = null;
+    const checkGitStatus = () => {
+        if (!workspaceFolder || !GitUtils.isGitRepository(workspaceFolder.uri.fsPath)) {
+            return;
+        }
+
+        const currentCommitHash = GitUtils.getCurrentCommitHash(workspaceFolder.uri.fsPath);
+        
+        // If commit hash has changed, it means new commits have been made
+        if (lastCommitHash !== null && currentCommitHash !== lastCommitHash && currentCommitHash !== null) {
+            const isClean = GitUtils.isWorkingDirectoryClean(workspaceFolder.uri.fsPath);
+            
+            if (isClean) {
+                // Working directory is clean and we have new commits, clear the cache
+                clearCacheDirectory(changeDir);
+                provider.refresh();
+            }
+        }
+        
+        lastCommitHash = currentCommitHash;
+    };
+
+    // Initialize git status
+    if (workspaceFolder) {
+        lastCommitHash = GitUtils.getCurrentCommitHash(workspaceFolder.uri.fsPath);
+    }
 
     const openFileCommand = vscode.commands.registerCommand('fileTypeExplorer.openFile', (item: FileTypeTreeItem) => {
         if (item.fileItem && item.fileItem.type === 'file' && item.fileItem.relativePath && workspaceFolder) {
@@ -89,8 +138,15 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // Set auto-refresh timer, refresh every 5 seconds
+    const clearCacheCommand = vscode.commands.registerCommand('fileTypeExplorer.clearCache', () => {
+        clearCacheDirectory(changeDir);
+        provider.refresh();
+        vscode.window.showInformationMessage('Cache cleared successfully!');
+    });
+
+    // Set auto-refresh timer, refresh every 5 seconds and check git status
     const autoRefreshInterval = setInterval(() => {
+        checkGitStatus();
         provider.refresh();
     }, 5000);
 
@@ -99,6 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
         openFileCommand,
         refreshCommand,
         installCommand,
+        clearCacheCommand,
         {
             dispose: () => {
                 clearInterval(autoRefreshInterval);
