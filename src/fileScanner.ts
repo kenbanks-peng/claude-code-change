@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { FileItem, FileTypeGroup } from './types';
 
 export class FileScanner {
@@ -25,7 +25,7 @@ export class FileScanner {
             const entries = fs.readdirSync(dirPath, { withFileTypes: true });
             
             for (const entry of entries) {
-                // 过滤掉根目录下的 .stopFlag 文件
+                // Filter out .stopFlag file in root directory
                 if (entry.name === '.stopFlag' && relativePath === '') {
                     continue;
                 }
@@ -42,7 +42,7 @@ export class FileScanner {
                     };
                     items.push(folderItem);
                     
-                    // 递归扫描子文件夹
+                    // Recursively scan subfolders
                     const subItems = this.scanDirectory(fullPath, itemPath);
                     items.push(...subItems);
                 } else {
@@ -58,7 +58,7 @@ export class FileScanner {
                 }
             }
         } catch (error) {
-            console.error('扫描目录失败:', error);
+            console.error('Directory scan failed:', error);
         }
         
         return items;

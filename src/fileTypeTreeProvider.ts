@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
+import * as path from 'node:path';
 import { FileScanner } from './fileScanner';
 import { FileTypeTreeItem, FileItem } from './types';
 import { DiffUtils } from './diffUtils';
@@ -29,10 +29,10 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
 
     getChildren(element?: FileTypeTreeItem): Thenable<FileTypeTreeItem[]> {
         if (!element) {
-            // 根节点 - 返回顶层文件和文件夹
+            // Root node - return top-level files and folders
             const items: FileTypeTreeItem[] = [];
             
-            // 筛选出顶层项目（没有父路径的项目）
+            // Filter out top-level items (items without parent path)
             const topLevelItems = this.allFiles.filter(item => 
                 !item.relativePath?.includes(path.sep) || item.relativePath === item.name
             );
@@ -40,14 +40,14 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
             for (const item of topLevelItems) {
                 let diffDescription = '';
                 
-                // 如果是文件且有工作区根目录，计算差异统计
+                // If it's a file and has workspace root directory, calculate diff stats
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
                     const diffStats = DiffUtils.calculateDiff(item.path, workspaceFilePath);
                     diffDescription = DiffUtils.formatDiffStats(diffStats);
                 }
                 
-                // 为文件设置工作区路径的resourceUri以获得正确图标
+                // Set workspace path resourceUri for files to get correct icons
                 let resourceUri: vscode.Uri | undefined = undefined;
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
@@ -62,7 +62,7 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
                     item
                 );
                 
-                // 设置tooltip为工作区文件路径，如果不存在则显示相对路径
+                // Set tooltip to workspace file path, or show relative path if it doesn't exist
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
                     treeItem.tooltip = workspaceFilePath;
@@ -76,13 +76,13 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
             }
 
             return Promise.resolve(items.sort((a, b) => {
-                // 文件夹排在前面
+                // Folders come first
                 if (a.fileItem?.type === 'folder' && b.fileItem?.type === 'file') return -1;
                 if (a.fileItem?.type === 'file' && b.fileItem?.type === 'folder') return 1;
                 return a.label!.localeCompare(b.label!);
             }));
         } else if (element.contextValue === 'folder' && element.fileItem) {
-            // 文件夹节点 - 返回该文件夹下的文件和子文件夹
+            // Folder node - return files and subfolders under this folder
             const folderPath = element.fileItem.relativePath || element.fileItem.name;
             const items: FileTypeTreeItem[] = [];
             
@@ -95,14 +95,14 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
             for (const item of childItems) {
                 let diffDescription = '';
                 
-                // 如果是文件且有工作区根目录，计算差异统计
+                // If it's a file and has workspace root directory, calculate diff stats
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
                     const diffStats = DiffUtils.calculateDiff(item.path, workspaceFilePath);
                     diffDescription = DiffUtils.formatDiffStats(diffStats);
                 }
                 
-                // 为文件设置工作区路径的resourceUri以获得正确图标
+                // Set workspace path resourceUri for files to get correct icons
                 let resourceUri: vscode.Uri | undefined = undefined;
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
@@ -117,7 +117,7 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
                     item
                 );
                 
-                // 设置tooltip为工作区文件路径，如果不存在则显示相对路径
+                // Set tooltip to workspace file path, or show relative path if it doesn't exist
                 if (item.type === 'file' && item.relativePath && this.workspaceRoot) {
                     const workspaceFilePath = path.join(this.workspaceRoot, item.relativePath);
                     treeItem.tooltip = workspaceFilePath;
@@ -131,7 +131,7 @@ export class FileTypeTreeProvider implements vscode.TreeDataProvider<FileTypeTre
             }
             
             return Promise.resolve(items.sort((a, b) => {
-                // 文件夹排在前面
+                // Folders come first
                 if (a.fileItem?.type === 'folder' && b.fileItem?.type === 'file') return -1;
                 if (a.fileItem?.type === 'file' && b.fileItem?.type === 'folder') return 1;
                 return a.label!.localeCompare(b.label!);

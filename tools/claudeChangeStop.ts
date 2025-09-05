@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import * as os from 'os';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
+import * as os from 'node:os';
 
 const homeDir = os.homedir();
 const codeChangeDir = path.join(homeDir, '.claudeCodeChange');
@@ -31,21 +31,21 @@ const inputData = async (): Promise<InputData> => {
 const flagStop = async (data: InputData) => {
   const { transcript_path } = data;
 
-  // 读取JSONL文件
+  // Read JSONL file
   if (!fs.existsSync(transcript_path)) {
-    console.log(`Transcript文件不存在: ${transcript_path}`);
+    console.log(`Transcript file doesn't exist: ${transcript_path}`);
     return;
   }
 
-  // 读取第一行
+  // Read first line
   const content = fs.readFileSync(transcript_path, 'utf8');
   const lines = content.split('\n').filter(line => line.trim());
   if (lines.length === 0) {
-    console.log('JSONL文件为空');
+    console.log('JSONL file is empty');
     return;
   }
 
-  // 解析第一个cwd
+  // Parse first cwd
   const cwdLine = lines.find(line => {
     try {
       return JSON.parse(line).cwd;
@@ -58,27 +58,27 @@ const flagStop = async (data: InputData) => {
   console.log('cwd', cwd);
 
   if (!cwd) {
-    console.log('未找到cwd路径');
+    console.log('cwd path not found');
     return;
   }
 
-  // 生成cwd的MD5哈希
+  // Generate MD5 hash of cwd
   const md5Hash = crypto.createHash('md5').update(cwd).digest('hex');
   const changeDirName = `change_${md5Hash}`;
 
-  // 在当前目录的change_{md5}文件夹中创建.stopFlag文件
+  // Create .stopFlag file in current directory's change_{md5} folder
   const changeDirPath = path.join(codeChangeDir, changeDirName);
 
-  // 确保目录存在
+  // Ensure directory exists
   if (!fs.existsSync(changeDirPath)) {
     fs.mkdirSync(changeDirPath, { recursive: true });
   }
 
-  // 创建.stopFlag文件
+  // Create .stopFlag file
   const stopFlagPath = path.join(changeDirPath, '.stopFlag');
   fs.writeFileSync(stopFlagPath, '');
 
-  console.log(`已创建停止标志文件: ${stopFlagPath}`);
+  console.log(`Created stop flag file: ${stopFlagPath}`);
 };
 
 const main = async () => {
@@ -86,7 +86,7 @@ const main = async () => {
     const data = await inputData();
     await flagStop(data);
   } catch (error) {
-    console.error('执行失败:', error);
+    console.error('Execution failed:', error);
     process.exit(1);
   }
 };

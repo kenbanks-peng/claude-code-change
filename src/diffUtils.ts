@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 export interface DiffStats {
     added: number;
@@ -17,7 +17,7 @@ export class DiffUtils {
 
             return this.diffLines(originalContent, changedContent);
         } catch (error) {
-            console.error('计算文件差异失败:', error);
+            console.error('File diff calculation failed:', error);
             return null;
         }
     }
@@ -26,21 +26,21 @@ export class DiffUtils {
         const originalLines = original.split('\n');
         const changedLines = changed.split('\n');
 
-        // 简单的行级差异算法
+        // Simple line-level diff algorithm
         const originalSet = new Set(originalLines);
         const changedSet = new Set(changedLines);
 
         let added = 0;
         let deleted = 0;
 
-        // 计算新增行
+        // Calculate added lines
         for (const line of changedLines) {
             if (!originalSet.has(line)) {
                 added++;
             }
         }
 
-        // 计算删除行
+        // Calculate deleted lines
         for (const line of originalLines) {
             if (!changedSet.has(line)) {
                 deleted++;

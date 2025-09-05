@@ -1,10 +1,10 @@
 
-import * as os from 'os';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 
 export function createHookWrite() {
-  // 检查并创建 .claudeCodeChange 目录
+  // Check and create .claudeCodeChange directory
   const homeDir = os.homedir();
   const codeChangeDir = path.join(homeDir, '.claudeCodeChange');
   const preHookJsPath = path.join(codeChangeDir, 'tools/claudeChangePreToolUse.js');
@@ -21,7 +21,7 @@ export function createHookWrite() {
     "hooks": [
       {
         "type": "command",
-        "command": "node " + preHookJsPath
+        "command": `node ${preHookJsPath}`
       }
     ]
   };
@@ -29,40 +29,40 @@ export function createHookWrite() {
     "hooks": [
       {
         "type": "command",
-        "command": "node " + stopHookJsPath
+        "command": `node ${stopHookJsPath}`
       }
     ]
   };
-  if (!currentConfig['hooks']) {
-    currentConfig['hooks'] = {}
+  if (!currentConfig.hooks) {
+    currentConfig.hooks = {}
   }
-  if (!currentConfig['hooks']['PreToolUse']) {
-    currentConfig['hooks']['PreToolUse'] = [];
+  if (!currentConfig.hooks.PreToolUse) {
+    currentConfig.hooks.PreToolUse = [];
   }
-  if (!currentConfig['hooks']['Stop']) {
-    currentConfig['hooks']['Stop'] = [];
+  if (!currentConfig.hooks.Stop) {
+    currentConfig.hooks.Stop = [];
   }
-  // 检查是否已存在相同的PreToolUse hook
-  const preHookExists = currentConfig['hooks']['PreToolUse'].some((item: any) => {
-    return (item.hooks || []).some((hook: any) => hook.command === ('node ' + preHookJsPath));
+  // Check if the same PreToolUse hook already exists
+  const preHookExists = currentConfig.hooks.PreToolUse.some((item: any) => {
+    return (item.hooks || []).some((hook: any) => hook.command === `node ${preHookJsPath}`);
   });
 
-  // 检查是否已存在相同的Stop hook
-  const stopHookExists = currentConfig['hooks']['Stop'].some((item: any) => {
-    return (item.hooks || []).some((hook: any) => hook.command === ('node ' + stopHookJsPath));
+  // Check if the same Stop hook already exists
+  const stopHookExists = currentConfig.hooks.Stop.some((item: any) => {
+    return (item.hooks || []).some((hook: any) => hook.command === `node ${stopHookJsPath}`);
   });
 
-  // 只有不存在时才添加PreToolUse hook
+  // Only add PreToolUse hook if it doesn't exist
   if (!preHookExists) {
-    currentConfig['hooks']['PreToolUse'].push(preHookConfig);
+    currentConfig.hooks.PreToolUse.push(preHookConfig);
   }
 
-  // 只有不存在时才添加Stop hook
+  // Only add Stop hook if it doesn't exist
   if (!stopHookExists) {
-    currentConfig['hooks']['Stop'].push(stopHookConfig);
+    currentConfig.hooks.Stop.push(stopHookConfig);
   }
 
-  // 只有需要更新时才写入文件
+  // Only write file when update is needed
   if (!preHookExists || !stopHookExists) {
     fs.writeFileSync(claudeConfigPath, JSON.stringify(currentConfig, null, 2));
   }

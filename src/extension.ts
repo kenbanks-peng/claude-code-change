@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
-import * as os from 'os';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { FileTypeTreeProvider } from './fileTypeTreeProvider';
 import { FileTypeTreeItem } from './types';
 import { createHookWrite } from './claudeHookWrite';
 import { copyHookFile } from './copyHookFile';
 
 export function activate(context: vscode.ExtensionContext) {
-    // 检查并创建 .claudeCodeChange 目录
+    // Check and create .claudeCodeChange directory
     const homeDir = os.homedir();
     const codeChangeDir = path.join(homeDir, '.claudeCodeChange');
 
@@ -17,11 +17,11 @@ export function activate(context: vscode.ExtensionContext) {
         fs.mkdirSync(codeChangeDir);
     }
 
-    // 启动时自动安装hooks（静默模式）
+    // Automatically install hooks on startup (silent mode)
     copyHookFile(context.extensionPath);
     createHookWrite();
 
-    // 获取当前工作区路径并计算MD5
+    // Get current workspace path and calculate MD5
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     let changeDir = codeChangeDir;
 
@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
         const md5Hash = crypto.createHash('md5').update(workspacePath).digest('hex');
         changeDir = path.join(codeChangeDir, `change_${md5Hash}`);
 
-        // 创建对应的change目录
+        // Create corresponding change directory
         if (!fs.existsSync(changeDir)) {
             fs.mkdirSync(changeDir);
         }
@@ -47,16 +47,16 @@ export function activate(context: vscode.ExtensionContext) {
             const workspaceFilePath = path.join(workspaceFolder.uri.fsPath, item.fileItem.relativePath);
             const changeFilePath = item.fileItem.path;
 
-            // 检查工作区文件是否存在
+            // Check if workspace file exists
             if (fs.existsSync(workspaceFilePath)) {
-                // 打开diff视图，工作区文件在右侧（主文件），变更文件在左侧
+                // Open diff view, workspace file on right (main file), changed file on left
                 vscode.commands.executeCommand('vscode.diff',
                     vscode.Uri.file(changeFilePath),
                     vscode.Uri.file(workspaceFilePath),
                     `${item.fileItem.name} (Changes ↔ Workspace)`
                 );
             } else {
-                // 工作区文件不存在，直接打开变更文件
+                // Workspace file doesn't exist, open changed file directly
                 vscode.window.showTextDocument(vscode.Uri.file(changeFilePath));
             }
         }
@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
             }, async (progress) => {
                 progress.report({ increment: 50, message: "Copying tool files..." });
 
-                // 获取插件安装目录
+                // Get extension installation directory
                 const extensionPath = context.extensionPath;
                 copyHookFile(extensionPath);
                 createHookWrite();
@@ -89,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // 设置自动刷新定时器，每5秒刷新一次
+    // Set auto-refresh timer, refresh every 5 seconds
     const autoRefreshInterval = setInterval(() => {
         provider.refresh();
     }, 5000);

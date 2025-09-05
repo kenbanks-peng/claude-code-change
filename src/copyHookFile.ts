@@ -1,12 +1,13 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 
 export function copyHookFile(extensionPath: string) {
   // 获取插件安装目录
   const toolsSrcDir = path.join(extensionPath, 'out', 'tools');
 
   // 复制编译后的文件到 .claudeCodeChange/tools
-  const homeDir = require('os').homedir();
+  const homeDir = os.homedir();
   const toolsDestDir = path.join(homeDir, '.claudeCodeChange', 'tools');
 
   if (!fs.existsSync(toolsDestDir)) {
