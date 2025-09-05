@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-watcher",
+  "name": "claude-code-change",
   "displayName": "Claude Code Change",
   "description": "A VSCode extension that provides file comparison and change tracking functionality for Claude Code conversations",
   "version": "1.0.13",
